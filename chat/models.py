@@ -12,7 +12,7 @@ class Chat(models.Model):
     status = models.CharField(max_length=10, choices=[('open', 'Open'), ('closed', 'Closed')], default='open')
 
     def __str__(self):
-        return f"Chat {self.id} between {self.user_chat_sender} and {self.user_chat_receiver}"
+        return f"Chat between {self.user_chat_sender.first_name} and {self.user_chat_receiver.first_name}"
 
 
 class Message(models.Model):
