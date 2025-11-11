@@ -44,9 +44,11 @@ INSTALLED_APPS = [
     'drf_yasg',
     'drf_spectacular',
     'django_filters',
+    'channels',
     'accounts',
     'items',
     'categories',
+    'chat',
 ]
 
 DATABASES = {
@@ -89,6 +91,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'laquetha.wsgi.application'
+ASGI_APPLICATION = 'laquetha.asgi.application'
 
 
 # Database
@@ -177,3 +180,12 @@ EMAIL_HOST_PASSWORD = "bvzq lxhc kvel wurc"
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 SITE_URL = "http://localhost:5173"  #URL Of React
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],  
+        },
+    },
+}

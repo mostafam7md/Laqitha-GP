@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 
+# for swagger and redoc implementation
 schema_view = get_schema_view(
     openapi.Info(
         title="Laqitha API Docs",
@@ -27,6 +28,7 @@ urlpatterns = [
     path('api/', include('categories.urls')),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='swagger-ui'),
     re_path(r'^redoc/$', schema_view.with_ui('redoc', cache_timeout=0), name='redoc'),    
+    path('api/chat/', include('chat.urls')),
 ]
 
 if settings.DEBUG:
