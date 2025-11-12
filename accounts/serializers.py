@@ -8,6 +8,8 @@ from django.shortcuts import get_object_or_404
 from django.conf import settings
 from django.core.mail import send_mail
 
+MAX_PHOTO_MB = 3
+VALID_EXTS = {"jpg", "jpeg", "png", "webp"}
 class UserSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -39,10 +41,8 @@ class LoginSerializer(serializers.Serializer):
 
         user = User.objects.filter(email=email).first()
         if not user or not user.check_password(password):
-            # Don't leak whether email exists
             raise serializers.ValidationError({"detail": "Invalid credentials."})
 
-        # Blocked states
         if user.status == UserStatus.BANNED:
             raise serializers.ValidationError({"detail": "Account is banned."})
         if user.status == UserStatus.SUSPENDED:
@@ -56,7 +56,6 @@ class LoginSerializer(serializers.Serializer):
 
         return user
 
-MAX_PHOTO_MB = 3
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False)
@@ -67,7 +66,8 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "email",
             "first_name", "last_name",
             "phone_number", "governorate", "city", "street",
-            "photo",
+            "photo","id_card_front", "id_card_back",
+            "national_id_number", "national_id_barcode",
         ]
         extra_kwargs = {
             "first_name": {"required": False},
@@ -77,6 +77,10 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             "city": {"required": False},
             "street": {"required": False},
             "photo": {"required": False},
+            "id_card_front": {"required": False},
+            "id_card_back": {"required": False},
+            "national_id_number": {"required": False, "allow_null": True, "allow_blank": True},
+            "national_id_barcode": {"required": False, "allow_null": True, "allow_blank": True},
         }
 
     def validate_email(self, value):
@@ -86,28 +90,48 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("This email is already in use.")
         return value
 
-    def validate_photo(self, value):
+
+    def _validate_image(self, value):
         if not value:
             return value
-        # size
         if value.size > MAX_PHOTO_MB * 1024 * 1024:
             raise serializers.ValidationError(f"Image too large (>{MAX_PHOTO_MB}MB).")
-        # extension/content type quick check
-        valid_exts = {"jpg", "jpeg", "png", "webp"}
         ext = (value.name.rsplit(".", 1)[-1].lower() if "." in value.name else "")
-        if ext not in valid_exts:
+        if ext not in VALID_EXTS:
             raise serializers.ValidationError("Only JPG/JPEG/PNG/WebP are allowed.")
         return value
 
+    def validate_photo(self, value):
+        return self._validate_image(value)
+
+    # NEW:
+    def validate_id_card_front(self, value):
+        return self._validate_image(value)
+
+    def validate_id_card_back(self, value):
+        return self._validate_image(value)
+
+    def validate_national_id_number(self, value):
+        if value in (None, ""):
+            return value
+        v = str(value).strip()
+        if len(v) != 14 or not v.isdigit():
+            raise serializers.ValidationError("National ID must be exactly 14 digits.")
+        return v
+
     def update(self, instance, validated_data):
-        # if email provided and changed, lower it
         email = validated_data.get("email")
         if email:
             instance.email = email.strip().lower()
 
-        for field in ["first_name", "last_name", "phone_number", "governorate", "city", "street"]:
+        for field in ["first_name", "last_name", "phone_number", "governorate", "city", "street",
+                      "national_id_number", "national_id_barcode"]:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
+
+        for img_field in ["photo", "id_card_front", "id_card_back"]:
+            if img_field in validated_data and validated_data[img_field]:
+                setattr(instance, img_field, validated_data[img_field])
 
         if "photo" in validated_data and validated_data["photo"]:
             instance.photo = validated_data["photo"]

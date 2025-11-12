@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
 from datetime import timedelta
+from django.core.validators import RegexValidator
 
 
 class UserStatus(models.TextChoices):
@@ -10,6 +11,11 @@ class UserStatus(models.TextChoices):
     SUSPENDED = "SUSPENDED", "Suspended"
     BANNED = "BANNED", "Banned"
 
+def id_front_upload_to(instance, filename):
+    return f"id_cards/{instance.pk}/front/{filename}"
+
+def id_back_upload_to(instance, filename):
+    return f"id_cards/{instance.pk}/back/{filename}"
 
 class UserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, phone_number, governorate, city, street, password=None, **extra):
@@ -66,7 +72,20 @@ class User(AbstractBaseUser, PermissionsMixin):
     photo = models.ImageField(upload_to=avatar_upload_to, default="avatars/default.png", blank=True)
 
     status = models.CharField(max_length=16, choices=UserStatus.choices, default=UserStatus.ACTIVE, db_index=True)
-
+    id_card_front = models.ImageField(upload_to=id_front_upload_to, blank=True, null=True)
+    id_card_back  = models.ImageField(upload_to=id_back_upload_to,  blank=True, null=True)
+    national_id_number = models.CharField(
+        max_length=14,
+        blank=True,
+        null=True,
+        unique=True,
+        validators=[RegexValidator(regex=r"^\d{14}$", message="National ID must be 14 digits.")]
+    )
+    national_id_barcode = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True
+    )
     deactivated_at = models.DateTimeField(null=True, blank=True)
 
     is_active = models.BooleanField(default=True)

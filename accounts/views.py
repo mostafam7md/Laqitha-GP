@@ -31,6 +31,14 @@ class LoginView(APIView):
         return Response({"access_token": str(refresh.access_token)}, status=200)
 
 
+def _file_abs_url(request, f):
+    try:
+        if f and getattr(f, "name", None):
+            return request.build_absolute_uri(f.url)
+    except Exception:
+        return None
+    return None
+
 class ProfileView(APIView):
     """
     GET  /api/accounts/profile/   
@@ -51,13 +59,22 @@ class ProfileView(APIView):
             "city": u.city,
             "street": u.street,
             "status": u.status,
-            "photo": request.build_absolute_uri(u.photo.url) if getattr(u.photo, "url", None) else None,
+            "photo":             _file_abs_url(request, u.photo),         
+            "id_card_front":     _file_abs_url(request, u.id_card_front), 
+            "id_card_back":      _file_abs_url(request, u.id_card_back),  
+            "national_id_number":  u.national_id_number,                  
+            "national_id_barcode": u.national_id_barcode                  
         }, status=200)
+
 
     def patch(self, request):
         s = ProfileUpdateSerializer(instance=request.user, data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         user = s.save()
+
+        def abs_url(f):
+            return request.build_absolute_uri(f.url) if getattr(f, "url", None) else None
+
         return Response({
             "detail": "Profile updated",
             "user": {
@@ -69,7 +86,12 @@ class ProfileView(APIView):
                 "city": user.city,
                 "street": user.street,
                 "status": user.status,
-                "photo": request.build_absolute_uri(user.photo.url) if getattr(user.photo, "url", None) else None,
+                "photo":           abs_url(user.photo),
+                # الجديد:
+                "id_card_front":   abs_url(user.id_card_front),
+                "id_card_back":    abs_url(user.id_card_back),
+                "national_id_number":  user.national_id_number,
+                "national_id_barcode": user.national_id_barcode,
             }
         }, status=200)
 
@@ -105,8 +127,6 @@ class ChangePasswordView(APIView):
         s.is_valid(raise_exception=True)
         s.save()
         return Response({"detail": "Password updated successfully."}, status=200)
-
-
 
 
 class PasswordForgotMagicLinkView(APIView):
