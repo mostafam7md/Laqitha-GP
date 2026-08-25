@@ -11,10 +11,12 @@ class MessageSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name']
-        
+        fields = ['id', 'first_name', 'last_name', 'photo']
+
 class ChatSerializer(serializers.ModelSerializer):
     messages = MessageSerializer(many=True, read_only=True)
+    user_chat_sender = UserSerializer(read_only=True)
+    user_chat_receiver = UserSerializer(read_only=True)
 
     class Meta:
         model = Chat

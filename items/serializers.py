@@ -27,4 +27,4 @@ class ItemSerializer(serializers.ModelSerializer):
             'initial_found_time',
             'final_found_time'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'owner_user']

@@ -11,7 +11,10 @@ class ItemViewSet(viewsets.ModelViewSet):
     filterset_class = ItemFilter
     ordering_fields = ['created_at', 'initial_found_time', 'final_found_time', 'item_name']
     ordering = ['-created_at']
-    
+
+    def perform_create(self, serializer):
+        serializer.save(owner_user=self.request.user)
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated()]
